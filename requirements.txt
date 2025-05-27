@@ -1,0 +1,16 @@
+uvicorn
+openai
+pydantic
+fastapi
+sentence-transformers
+python-louvain
+chromadb
+numpy
+spacy
+pyvis
+gradio
+langchain-openai
+langchain-core
+langgraph
+scrapegraphai
+beautifulsoup4
