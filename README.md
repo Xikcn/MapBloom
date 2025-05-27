@@ -8,19 +8,21 @@
 
 
 ## 项目结构
+```plaintext
 MapBloom/
 ├── chroma_mapbloom/       # 知识图谱三元组Chroma向量数据库
 ├── .env                   # 环境变量配置文件
 ├── app.py                 # 部署魔搭社区的启动入口
-├── workflow.py            # 主程序文件，包含智能体定义、皮肤分析、对话逻辑等
+├── workflow.py            # 主程序文件（智能体定义、皮肤分析、对话逻辑）
 ├── products/              # 产品数据目录
 │   └── products.json      # 产品信息文件
 ├── tools/                 # 工具目录
 │   └── Community_query.py # 知识图谱查询工具
 ├── kg/                    # 知识图谱相关工具目录
-│   └── embedding_tools.py # 查询知识图谱所需的嵌入模型函数类
+│   └── embedding_tools.py # 嵌入模型函数类
 ├── 美妆知识.html          # 评估专家Agent的知识图谱展示页面
-├── 生成美妆团队图片.png   # 封面图片
+└── 生成美妆团队图片.png   # 封面图片
+```
 
 
 ### 使用的模型如下：
