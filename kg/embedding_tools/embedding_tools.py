@@ -1,7 +1,5 @@
-
 from modelscope import AutoModel, AutoTokenizer
 from chromadb import Documents, EmbeddingFunction, Embeddings
-
 import torch
 import logging
 
@@ -10,13 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class BgeZhEmbeddingFunction(EmbeddingFunction):
-    """基于魔搭社区BAAI/bge-base-zh模型的嵌入函数
-
-    特性：
-    - 支持魔搭本地模型缓存[2,4](@ref)
-    - 自动设备检测（CPU/GPU）
-    - 符合中文语义的文本预处理
-    - 支持动态量化降低显存消耗
+    """
+        基于魔搭社区BAAI/bge-base-zh模型的嵌入函数
     """
 
     _instance = None  # 保持单例模式

@@ -18,12 +18,7 @@ from datetime import datetime, timedelta
 from tools.Community_query import KnowledgeGraphQueryTool
 
 
-
-
 query_tool = KnowledgeGraphQueryTool()
-
-
-
 
 # 初始化大模型
 model = ChatOpenAI(
@@ -47,7 +42,7 @@ def get_latest_products(profile: Dict[str, str]) -> str:
     if gender == "男":
         prefer_categories = ["男士护肤", "男士彩妆"]
     else:
-        prefer_categories = ["女士护肤", "彩妆-脸部彩妆","彩妆-唇部彩妆","彩妆-眼部产品"]
+        prefer_categories = ["女士护肤", "彩妆-脸部彩妆", "彩妆-唇部彩妆", "彩妆-眼部产品"]
     try:
         with open("products/products.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -69,31 +64,49 @@ def get_latest_products(profile: Dict[str, str]) -> str:
 
 
 @tool
-def get_community_triples_by_entities(query: str)->str:
-    """调用知识图谱提取函数，返回参考链接与知识三元组"""
-    return  query_tool.query_community(
-            query=query,
-            file="美妆知识",
-            top_n=10,
-            entity_top_k=5
-        )
+def get_community_triples_by_entities(query: str) -> str:
+    """调用知识图谱提取函数，返回参考链接与知识三元组
+    :arg query: 问题涉及的主要实体
+    """
+    return query_tool.query_community(
+        query=query,
+        file="美妆知识",
+        top_n=10,
+        entity_top_k=5
+    )
 
 
 @tool
 def transfer_to_product_agent():
-    """转接到美妆设计Agent"""
+    """
+    用户需求涉及美妆设计,转接到美妆设计Agent
+    - 转接后请自动响应用户原始问题，无需用户重复输入。
+    - 如果用户表达了对比、推荐等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
+    - 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+    """
     return "转接到美妆设计Agent"
 
 
 @tool
 def transfer_to_comparison_agent():
-    """转接到产品推荐Agent"""
+    """
+    用户需求涉及产品选择、对比或推荐,转接到产品推荐Agent
+        用户需求涉及美妆设计,转接到美妆设计Agent
+    - 转接后请自动响应用户原始问题，无需用户重复输入。
+    - 如果用户表达了对比、推荐等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
+    - 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+    """
     return "转接到产品推荐Agent"
 
 
 @tool
 def transfer_to_expert_agent():
-    """转接到专家评估Agent"""
+    """
+    如遇到科学性问题，危害问题，需要专业知识,转接到专家评估Agent
+    - 转接后请自动响应用户原始问题，无需用户重复输入。
+    - 如果用户表达了对比、推荐等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
+    - 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+    """
     return "转接到专家评估Agent"
 
 
@@ -129,9 +142,8 @@ def recommend_checkin_spots(profile: Dict[str, str]) -> str:
     spots = spot_map.get(location, {}).get(season, [("本地热门景点", "记录你的美好瞬间！")])
     # 随机推荐一条
     spot, text = random.choice(spots)
-    return json.dumps({"推荐地点": spot, "推荐文案": text, "地区": location, "季节": season}, ensure_ascii=False, indent=2)
-
-
+    return json.dumps({"推荐地点": spot, "推荐文案": text, "地区": location, "季节": season}, ensure_ascii=False,
+                      indent=2)
 
 
 from fuzzywuzzy import process, fuzz
@@ -140,8 +152,8 @@ from fuzzywuzzy import process, fuzz
 def get_product_info(query: str = "", category: str = "") -> str:
     """
     根据产品名称模糊匹配，返回相似度最高的产品列表（按相似度降序）
-    query: 产品名，可选
-    category: 可选，指定产品类别["男士护肤", "男士彩妆","女士护肤", "彩妆-脸部彩妆","彩妆-唇部彩妆","彩妆-眼部产品"]
+    query: 产品名，可选，例如["眼影","气垫","防晒乳","眉笔","唇釉"...]
+    category: 可选，指定产品类别，具有["男士护肤", "男士彩妆","女士护肤", "彩妆-脸部彩妆","彩妆-唇部彩妆","彩妆-眼部产品"]
     """
     try:
         with open("products/products.json", "r", encoding="utf-8") as f:
@@ -188,103 +200,119 @@ def get_product_info(query: str = "", category: str = "") -> str:
     return json.dumps(top_results, ensure_ascii=False, indent=2) if top_results else "未找到相关产品信息。"
 
 
-
-
 # ---------- 智能体定义 ----------
 product_agent_tools = [
     get_community_triples_by_entities,
     get_product_info,
-    transfer_to_comparison_agent,
-    transfer_to_expert_agent,
+    # transfer_to_comparison_agent,
+    # transfer_to_expert_agent,
 ]
 
+product_agent_tools_names = ["get_community_triples_by_entities", "get_product_info"]
 
 product_agent = create_react_agent(
     model,
     product_agent_tools,
-    prompt="""
-你是美妆设计师，专注为每位用户量身定制独特且细致的妆容教程。请充分结合用户画像（如肤质、季节、性别、年龄、气候、特殊场合等）和外部环境因素（如流行趋势、气候变化、节日等），为用户生成个性化、实用且详细的妆容步骤和技巧。
-- 妆容教程需包含底妆、眼妆、唇妆、护肤搭配等模块，每一部分都要有详细的操作步骤、技巧和注意事项。
+    prompt=f"""
+# Role
+你是美妆设计师，专注为每位用户量身定制，推荐独特且细致的妆容教程(如肤质、季节、性别...)。
+
+尽可能回答以下问题。您可以访问以下工具，但不要在最终结果中输出这些工具，也不要透露任何关于工具的描述：
+{product_agent_tools}
+
+
+最终答案要求：
+- 每一部分都要有详细的操作步骤、技巧和注意事项。
 - 美妆教程不要推荐任何美妆产品。
-- 如遇到用户需求涉及产品选择、对比或推荐，请直接调用 'transfer_to_comparison_agent'。
-- 如遇到科学性问题，危害问题，需要专业知识，请直接调用 'transfer_to_expert_agent'。
 - 回答应避免冗长的欢迎语，直接进入妆容教程内容。
 - 如用户画像信息不全，可适当追问补充。
-- 在生成妆容教程前，务必先调用 'get_community_triples_by_entities' 工具，获取与用户条件最相关的少量美妆知识（三元组），只需获取最有用的几条即可，避免冗余。这些知识仅作为科学依据辅助妆容设计，不必全部展示给用户。
-- 用户一旦提及具体产品名，必须优先调用 'get_product_info' 检索本地产品库，若有结果请直接展示详细信息（如成分、功效、用法、适用肤质、链接等）；若无结果请明确告知"本地产品库暂无该产品信息"，不要随意猜测或泛泛描述。
-- 禁止重复输出妆容教程或产品介绍，每轮只输出一次核心内容。
-- 转接后请自动响应用户原始问题，无需用户重复输入。
-- 如果用户表达了对比、推荐等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
-- 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+
+下面用户将开始与你对话，请帮用户解决问题：
+
 """
 )
 
-
 comparison_agent_tools = [
     get_product_info,
-    transfer_to_expert_agent,
+    # transfer_to_expert_agent,
 ]
+
+comparison_agent_tools_name = "get_product_info"
 
 comparison_agent = create_react_agent(
     model,
     comparison_agent_tools,
-    prompt="""
+    prompt=f"""
+
+
 你是产品推荐员，专注于根据美妆设计师提出的需求或用户指定的产品，进行多产品横向对比分析。
-- 推荐产品前，必须先调用 'get_latest_products' 检查本地产品库是否有符合用户需求的产品。
-- 用户一旦提及具体产品名，必须优先调用 'get_product_info' 检索本地产品库，若有结果请直接展示详细信息（如成分、功效、用法、适用肤质、链接等）；若无结果请明确告知"本地产品库暂无该产品信息"，不要随意猜测或泛泛描述。
-- 详细分析各产品的成分、功效、适配性、优缺点，结合用户画像（肤质、季节、性别等）给出客观的对比结论。
-- 最终推荐最适合用户的产品，并说明推荐理由。
+
+尽可能回答以下问题。您可以访问以下工具，但不要在最终结果中输出这些工具，也不要透露任何关于工具的描述：
+{comparison_agent_tools}
+
+
+
+最终答案要求：
 - 只推荐本地产品库中真实存在且符合条件的产品。
-- 产品推荐完成后，请调用 'transfer_to_expert_agent' 交由评判专家进行化学成分与适配性评估。
-- 不要输出妆容教程或操作步骤，专注于产品对比与推荐。
-- 如果没有合适的产品，请直接告知用户"暂无合适产品"，不要强行推荐其他品牌或无关产品。
-- 禁止重复输出产品介绍，每轮只输出一次核心内容。
-- 转接后请自动响应用户原始问题，无需用户重复输入。
-- 如果用户表达了需要妆造教程、方案评估等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
-- 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+
+下面用户将开始与你对话，请帮用户解决问题：
+
 """
 )
 
 expert_agent_tools = [
     get_community_triples_by_entities,
     get_product_info,
-    transfer_to_product_agent,
+    # transfer_to_product_agent,
 ]
+
+expert_agent_tools_names = ["get_community_triples_by_entities", "get_product_info"]
 
 expert_agent = create_react_agent(
     model,
     expert_agent_tools,
-    prompt="""
-你是美妆方案评估专家，专注于对产品对比推荐的产品或美妆方案进行专业成分和适配性评估。
+    prompt=f"""
+
+
+你是美妆方案评估专家，专注于对产品对比推荐的产品或美妆方案进行专业成分和适配性进行科学评估。
+
+尽可能回答以下问题。您可以访问以下工具，但不要在最终结果中输出这些工具，也不要透露任何关于工具的描述：
+{expert_agent_tools}
+
+
+最终答案要求：
 - 请结合知识图谱和专业判断，分析推荐产品的成分、功效是否适合用户的肤质、季节和特殊需求，判断其他agent生成的回答是否符合科学性。
-- 回答科学性原理性问题前，务必先调用 'get_community_triples_by_entities'，获取美妆与功能化妆品的专业知识，将使用到的专业知识显示给用户，保证推理的透明性。
-- 评估时需引用知识三元组作为科学依据，给出是否适合用户的明确结论和详细理由。
-- 如发现推荐不适合用户，请说明原因并调用 'transfer_to_product_agent'，重新进入妆容设计流程。
 - 不要输出产品对比或妆容教程，专注于化学成分与适配性评估。
 - 回答应简明、专业、直接。
-- 用户一旦提及具体产品名，必须优先调用 'get_product_info' 检索本地产品库，若有结果请直接展示详细信息（如成分、功效、用法、适用肤质、链接等）；若无结果请明确告知"本地产品库暂无该产品信息"，不要随意猜测或泛泛描述。
-- 禁止重复输出产品介绍，每轮只输出一次核心内容。
-- 转接后请自动响应用户原始问题，无需用户重复输入。
-- 如果用户表达了对比、推荐，需要妆造教程等需求，请直接调用对应的转接工具，并自动携带用户原始问题给下一个Agent，由下一个Agent直接生成答案返回用户。禁止输出"如需对比请告诉我"或"可以转接"之类的提示语。
-- 禁止输出任何"已为你转接到..."、"稍后将为你..."、"我会帮你转接到..."等提示语，只需直接生成对比/推荐/评估结果。
+
+下面用户将开始与你对话，请帮用户解决问题：
 """
 )
 
 checkin_agent_tools = [recommend_checkin_spots]
 
+checkin_agent_tools_names = ["recommend_checkin_spots"]
+
 checkin_agent = create_react_agent(
     model,
     checkin_agent_tools,
-    prompt="""
+    prompt=f"""
 你是打卡推荐员，专注于根据用户所在地区和当前季节，为用户推荐适合拍照打卡的文案和地点。
+
+尽可能回答以下问题。您可以访问以下工具，但不要在最终结果中输出这些工具，也不要透露任何关于工具的描述：
+{checkin_agent_tools}
+
+
+最终答案要求：
 - 请结合用户画像中的地区（如上海、北京等）、季节（如夏季、冬季等）等信息，生成有创意、适合社交平台分享的拍照打卡文案和推荐地点。
 - 推荐内容要简洁有趣，适合用户直接复制使用。
 - 如用户未提供地区信息，可主动询问或默认推荐本地热门景点。
 - 每次推荐三组文案和地点，3到6个拍照姿势脚本。
 - 禁止输出与拍照打卡无关的内容。
+
+下面用户将开始与你对话，请帮用户解决问题：
 """
 )
-
 
 
 # ---------- 多智能体调度 ----------
@@ -385,10 +413,10 @@ def pretty_print_messages(update):
         print("\n")
 
 
-
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
 
 def analyze_skin(image_path):
     base64_image = encode_image(image_path)
@@ -403,6 +431,7 @@ def analyze_skin(image_path):
   "肤质": "油性/干性/混合/中性/敏感/无法识别",
   "色斑": "无/轻微/明显/严重/无法识别",
   "痘痘": "无/轻微/明显/严重/无法识别",
+  "性别": "男/女/无法识别",
   "黑头": "无/轻微/明显/严重/无法识别",
   "毛孔粗大": "无/轻微/明显/严重/无法识别",
   "敏感度": "低/中/高/无法识别",
@@ -446,8 +475,8 @@ def get_current_season():
     else:
         return "冬季"
 
+
 def gradio_workflow_interface():
-    history = []
     user_profile = {
         "肤质": "混合",
         "年龄": "22",
@@ -455,8 +484,6 @@ def gradio_workflow_interface():
         "性别": "女"
     }
     skin_data = {}
-    # 新增：当前agent类型，默认美妆设计师
-    agent_type_state = gr.State({"type": "product_agent"})
 
     def upload_and_analyze(image):
         nonlocal skin_data, user_profile
@@ -511,7 +538,7 @@ def gradio_workflow_interface():
                 messages.append(msg)
         messages.append({"role": "user", "content": user_input})
         # 检查用户画像是否有皮肤状态
-        if not user_profile.get("肤质","混合"):
+        if not user_profile.get("肤质", "混合"):
             reply = "未检测到皮肤状态，请上传图片或补充肤质信息（如油性、干性等）。"
             chat_history.append({"role": "user", "content": user_input})
             chat_history.append({"role": "assistant", "content": reply})
@@ -534,6 +561,7 @@ def gradio_workflow_interface():
             agent_role = "美妆设计师"
         from langchain_core.messages import AIMessage
         ai_msgs = [m for m in convert_to_messages(output["messages"]) if isinstance(m, AIMessage)]
+        print(ai_msgs)
         if ai_msgs:
             reply = f"{agent_role}：{ai_msgs[-1].content}"
         else:
@@ -541,15 +569,6 @@ def gradio_workflow_interface():
         chat_history.append({"role": "user", "content": user_input})
         chat_history.append({"role": "assistant", "content": reply})
         return "", chat_history, skin_info, agent_type
-
-    def set_agent_product(agent_type):
-        return agent_type, "美妆设计师已激活！"
-    def set_agent_comparison(agent_type):
-        return agent_type, "产品推荐员已激活！"
-    def set_agent_expert(agent_type):
-        return agent_type, "评估专家已激活！"
-    def set_agent_checkin(agent_type):
-        return agent_type, "打卡推荐员已激活！"
 
     # 在gr.Blocks()外部或顶部增加自定义CSS
     if hasattr(gr, 'CSS'):
@@ -571,7 +590,8 @@ def gradio_workflow_interface():
     with gr.Blocks(css=custom_css) as demo:
         with gr.Tabs():
             with gr.TabItem("AI美妆多智能体系统"):
-                gr.Markdown("# 图妆（AI美妆多智能体系统）\n先在左侧上传图片分析皮肤状况-再进行咨询效果更好哦（采用专业的外部知识图谱加持的专家能够从化学成分帮你进行科学分析）")
+                gr.Markdown(
+                    "# 图妆（AI美妆多智能体系统）\n先在左侧上传图片分析皮肤状况-再进行咨询效果更好哦（采用专业的外部知识图谱加持的专家能够从化学成分帮你进行科学分析）")
                 with gr.Row():
                     # 新增一列，放封面图片
                     with gr.Column(scale=1):
@@ -599,7 +619,7 @@ def gradio_workflow_interface():
                             # 5个产品按钮，设置统一宽度和高度，超出部分用省略号
                             product_btns = [
                                 gr.Button(
-                                    f"产品{i+1}",
+                                    f"产品{i + 1}",
                                     elem_id=f"product-btn-{i}",
                                     scale=1
                                 ) for i in range(5)
@@ -616,11 +636,16 @@ def gradio_workflow_interface():
                 agent_type_state = gr.State({"type": "product_agent"})
                 # 事件绑定
                 upload_btn.click(upload_and_analyze, inputs=[image_input], outputs=[skin_output, skin_info_state])
-                send_btn.click(chat, inputs=[user_input, chat_history_state, skin_info_state, agent_type_state], outputs=[user_input, chatbot, skin_info_state, agent_type_state])
-                btn_product.click(lambda: ({"type": "product_agent"}, "美妆设计师已激活！"), None, [agent_type_state, agent_status])
-                btn_comparison.click(lambda: ({"type": "comparison_agent"}, "产品推荐员已激活！"), None, [agent_type_state, agent_status])
-                btn_expert.click(lambda: ({"type": "expert_agent"}, "评估专家已激活！"), None, [agent_type_state, agent_status])
-                btn_checkin.click(lambda: ({"type": "checkin_agent"}, "打卡推荐员已激活！"), None, [agent_type_state, agent_status])
+                send_btn.click(chat, inputs=[user_input, chat_history_state, skin_info_state, agent_type_state],
+                               outputs=[user_input, chatbot, skin_info_state, agent_type_state])
+                btn_product.click(lambda: ({"type": "product_agent"}, "美妆设计师已激活！"), None,
+                                  [agent_type_state, agent_status])
+                btn_comparison.click(lambda: ({"type": "comparison_agent"}, "产品推荐员已激活！"), None,
+                                     [agent_type_state, agent_status])
+                btn_expert.click(lambda: ({"type": "expert_agent"}, "评估专家已激活！"), None,
+                                 [agent_type_state, agent_status])
+                btn_checkin.click(lambda: ({"type": "checkin_agent"}, "打卡推荐员已激活！"), None,
+                                  [agent_type_state, agent_status])
 
                 # 新品推荐逻辑
                 def refresh_products(user_profile):
@@ -666,6 +691,7 @@ def get_five_products(user_profile=None):
     except Exception as e:
         print("新品推荐异常：", e)
         return ["暂无推荐"] * 5
+
 
 def append_product_to_input(product_name, user_input):
     # 末尾追加 #产品名
